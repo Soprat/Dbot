@@ -1,15 +1,15 @@
 import asyncio
-import aiogram
 import logging
 import sys
 
-from aiogram import Bot, Dispatcher, Router, types
+from aiogram import Bot, Dispatcher, types
 from aiogram.fsm.context import FSMContext
 from aiogram.enums import ParseMode
 from aiogram.filters import CommandStart
 from aiogram.types import Message
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
-from aiogram.methods import SendMessage
+from aiogram.methods import SendMessage, SendPhoto
+from aiogram.types import URLInputFile
 
 from aiogram.fsm.state import State, StatesGroup
 from aiogram import F
@@ -52,7 +52,7 @@ class Answers(StatesGroup):
     photo = State()
 
 
-BOT_TOKEN = ''
+BOT_TOKEN = '6949295099:AAEOZnpy5D3A_fLS-hRiFx5e0JDBBZ8N834'
 dp = Dispatcher()
 
 START_BUTTON = [[InlineKeyboardButton(text="Да", callback_data='start')]]
@@ -64,13 +64,15 @@ async def start_handler(message: Message):
     This handler receives messages with `/start` command
     """
 
-    await message.answer(START_MESSAGE,
-                         reply_markup=InlineKeyboardMarkup(
+    reply_markup = InlineKeyboardMarkup(
                             inline_keyboard=[[
                                 InlineKeyboardButton(text="Да",
-                                                     callback_data=f'start {message.chat.id}')
-                                            ]]
-                                ))
+                                                     callback_data=f'start {message.chat.id}')]])
+
+    await bot(SendPhoto(chat_id=message.chat.id,
+                        photo=URLInputFile("https://i.imgur.com/qR3EAV6.png"),
+                        caption=START_MESSAGE,
+                        reply_markup=reply_markup))
 
 
 @dp.callback_query()
@@ -141,9 +143,15 @@ async def process_years_in_business(message: Message, state: FSMContext) -> None
     '''
     Process years in business from message
     '''
-    await state.update_data(years_in_business=message.text)
-    await state.set_state(Answers.auto_on_storage)
-    await message.reply(text=Questions.auto_on_storage)
+    try:
+        int(message.text)
+        await state.update_data(years_in_business=message.text)
+        await state.set_state(Answers.auto_on_storage)
+        await message.reply(text=Questions.auto_on_storage)
+    except ValueError as e:
+        print(e)
+        await message.reply(text='Введите коректное значение')
+
 
 
 @dp.message(Answers.auto_on_storage)
@@ -151,9 +159,14 @@ async def process_auto_on_storage(message: Message, state: FSMContext) -> None:
     '''
     Process auto on storage from message
     '''
-    await state.update_data(auto_on_storage=message.text)
-    await state.set_state(Answers.people_in_team)
-    await message.reply(text=Questions.people_in_team)
+    try:
+        int(message.text)
+        await state.update_data(auto_on_storage=message.text)
+        await state.set_state(Answers.people_in_team)
+        await message.reply(text=Questions.people_in_team)
+    except ValueError as e:
+        print(e)
+        await message.reply(text='Введите коректное значение')
 
 
 @dp.message(Answers.people_in_team)
@@ -161,9 +174,14 @@ async def process_people_in_team(message: Message, state: FSMContext):
     '''
     Process people in team from message
     '''
-    await state.update_data(people_in_team=message.text)
-    await state.set_state(Answers.strong_sides)
-    await message.reply(text=Questions.strong_sides)
+    try:
+        int(message.text)
+        await state.update_data(people_in_team=message.text)
+        await state.set_state(Answers.strong_sides)
+        await message.reply(text=Questions.strong_sides)
+    except ValueError as e:
+        print(e)
+        await message.reply(text='Введите коректное значение')
 
 
 @dp.message(Answers.strong_sides)
@@ -225,7 +243,17 @@ async def process_photo(message: Message, state: FSMContext):
     photos = message.photo
 
     await state.update_data(photo=photos)
-    await process_final(message, state)
+    try:
+        await process_final(message, state)
+        await bot(SendMessage(chat_id=message.chat.id,
+                              text='''Отлично!
+
+Добавляйся в чат сообщества и размещай свою визитку в теме "Представления резидентов".
+https://t.me/+KkAHWL-GzM03YjQy'''))
+    except ValueError as e:
+        print(e)
+        await message.reply(
+            text='Возникла ошибка ввода')
 
 
 async def process_final(message: Message, state: FSMContext):
@@ -237,7 +265,7 @@ async def process_final(message: Message, state: FSMContext):
 Всем привет!
 
 Меня зовут name. Я из city.
-Моя компания называется company_name, основная специализация - spec.
+Моя компания называется company, основная специализация - spec.
 Я в автобизнесе years_in_business, у меня на складе auto_on_storage, в моей команде работает people_in_team сотрудников.
 
 Мои основные компетенции: strong_sides
@@ -249,8 +277,42 @@ telegram
 instagram
 '''
     user_data = await state.get_data()
+
+    if int(user_data['years_in_business']) in [1, 21, 31, 41, 51,
+                                               61, 71, 81, 91, 101]:
+        user_data['years_in_business'] += ' год'
+    elif int(user_data['years_in_business']) in (list(range(2, 5)),
+                                                 list(range(22, 25)),
+                                                 list(range(32, 35)),
+                                                 list(range(42, 45)),
+                                                 list(range(52, 55)),
+                                                 list(range(62, 65)),
+                                                 list(range(72, 75)),
+                                                 list(range(82, 85)),
+                                                 list(range(92, 95)),
+                                                 list(range(102, 105))):
+        user_data['years_in_business'] += ' года'
+    else:
+        user_data['years_in_business'] += ' лет'
+
+    if int(user_data['auto_on_storage']) in [1, 21, 31, 41, 51,
+                                             61, 71, 81, 91, 101]:
+        user_data['auto_on_storage'] += ' машина'
+    elif int(user_data['auto_on_storage']) in (list(range(2, 5)),
+                                               list(range(22, 25)),
+                                               list(range(32, 35)),
+                                               list(range(42, 45)),
+                                               list(range(52, 55)),
+                                               list(range(62, 65)),
+                                               list(range(72, 75)),
+                                               list(range(82, 85)),
+                                               list(range(92, 95)),
+                                               list(range(102, 105))):
+        user_data['auto_on_storage'] += ' машины'
+    else:
+        user_data['auto_on_storage'] += ' машин'
+
     for key in list(user_data.keys())[:-1]:
-        print('key:', key, 'data:', user_data[key])
         final_message = final_message.replace(str(key), user_data[key])
     print(final_message)
     await bot.send_photo(message.chat.id, 
