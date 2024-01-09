@@ -52,7 +52,7 @@ class Answers(StatesGroup):
     photo = State()
 
 
-BOT_TOKEN = '6949295099:AAEOZnpy5D3A_fLS-hRiFx5e0JDBBZ8N834'
+BOT_TOKEN = ''
 dp = Dispatcher()
 
 START_BUTTON = [[InlineKeyboardButton(text="Да", callback_data='start')]]
